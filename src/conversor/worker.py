@@ -109,6 +109,7 @@ def _operation(op: str):
         "presentation.convert": office.convert_presentation,
         "pdf.convert": _pdf_convert,
         "pdf.split": lambda s, f, t, o, d, c: pdf.split(s, o, d, c),
+        "pdf.pages": lambda s, f, t, o, d, c: pdf.pick_pages(s, o, d, c),
         "pdf.rotate": lambda s, f, t, o, d, c: pdf.rotate(s, o, d, c),
         "pdf.compress": lambda s, f, t, o, d, c: pdf.compress(s, o, d, c),
         "pdf.protect": lambda s, f, t, o, d, c: pdf.protect(s, o, d, c),

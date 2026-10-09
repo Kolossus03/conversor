@@ -8,10 +8,10 @@ An offline file converter for Windows. Drop files in, pick what you want, and th
 
 | Drop in | Convert to | Tools |
 |---|---|---|
-| **Images:** PNG, JPG, WEBP, AVIF, HEIC, SVG, ICO, GIF, BMP, TIFF | Any of those, ICO with several sizes, PDF | Remove background (AI), Upscale (AI), Resize, Compress, Remove metadata, Extract text (OCR), Combine into PDF |
-| **PDF** | Word, PNG/JPG pages, Text | Merge, Split, Compress, Rotate, Add/Remove password, Read scanned text (OCR) |
+| **Images:** PNG, JPG, WEBP, AVIF, HEIC, SVG, ICO, GIF, BMP, TIFF | Any of those, ICO with several sizes, PDF | Remove background (AI), Upscale (AI), Resize, Compress (or fit under a size), Remove metadata, Extract text (OCR), Combine into PDF |
+| **PDF** | Word, PNG/JPG pages, Text | Merge (reorderable), Pick/remove pages, Split, Compress, Rotate, Add/Remove password, Read scanned text (OCR) |
 | **Word, Excel, PowerPoint** (and ODF, RTF, TXT) | PDF, DOCX/XLSX/PPTX, ODT/ODS/ODP, CSV, TXT, slides as PNG | |
-| **Video:** MP4, MKV, MOV, WEBM, AVI, WMV, FLV, TS | MP4, WEBM, MKV, MOV, GIF, MP3/WAV (sound only) | Trim, Compress, Remove sound |
+| **Video:** MP4, MKV, MOV, WEBM, AVI, WMV, FLV, TS | MP4, WEBM, MKV, MOV, GIF, MP3/WAV (sound only) | Trim, Compress (or fit under a size, e.g. 25 MB), Remove sound |
 | **Audio:** MP3, WAV, FLAC, M4A, OGG, OPUS, AAC, WMA, AIFF | MP3, M4A, WAV, FLAC, OGG, OPUS | Trim, Normalize volume |
 | **Data:** CSV, TSV, JSON, YAML | Excel, CSV, JSON, YAML, TSV | |
 

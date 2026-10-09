@@ -102,6 +102,18 @@ def _square(im: Image.Image) -> Image.Image:
     return canvas
 
 
+_GIF_CLEAR = 255  # palette slot reserved for "transparent"
+
+
+def _to_gif_frame(im: Image.Image) -> Image.Image:
+    """GIF has 256 colours and on/off transparency: use 255 colours, keep slot 255 for clear pixels."""
+    rgba = im.convert("RGBA")
+    frame = rgba.convert("RGB").quantize(255, dither=Image.Dither.FLOYDSTEINBERG)
+    clear = rgba.getchannel("A").point(lambda a: 255 if a < 128 else 0)
+    frame.paste(_GIF_CLEAR, mask=clear)
+    return frame
+
+
 def _is_animated(im: Image.Image) -> bool:
     return getattr(im, "n_frames", 1) > 1
 
@@ -141,7 +153,7 @@ def save(im: Image.Image, target: str, tmp: Path, *, quality: int = 90, exif: by
     elif target == "pdf":
         _flatten(im).save(tmp, fmt, resolution=96)
     elif target == "gif":
-        im.convert("RGBA").convert("P", palette=Image.Palette.ADAPTIVE).save(tmp, fmt, optimize=True)
+        _to_gif_frame(im).save(tmp, fmt, transparency=_GIF_CLEAR)
     elif target == "bmp":
         im.convert("RGBA" if _has_alpha(im) else "RGB").save(tmp, fmt)
     elif target == "tiff":
@@ -162,7 +174,7 @@ def convert(src: Path, fmt: str, target: str, options: dict, out_dir: Path, ctx)
         raise ImageError(f"Unknown target format: {target}")
     quality = int(options.get("quality", 90))
 
-    if fmt in ("gif", "webp") and target in ("gif", "webp"):
+    if fmt in ("gif", "webp", "png") and target in ("gif", "webp"):  # png: animated PNG (APNG)
         im = Image.open(src)
         if _is_animated(im):
             ctx.progress(0.3)
@@ -198,10 +210,36 @@ def resize(src: Path, fmt: str, options: dict, out_dir: Path, ctx) -> Path:
                           lambda tmp: save(im, target, tmp, quality=92, exif=exif, icc=icc))
 
 
+def _fit_size(im: Image.Image, target_bytes: int, exif, icc, ctx) -> tuple[bytes, str]:
+    """Smallest-effort encoding under target_bytes: binary-search the quality, then shrink if needed."""
+    import io
+
+    fmt = "webp" if _has_alpha(im) else "jpg"
+    best = None
+    for step in range(12):
+        lo, hi = 10, 95
+        while lo <= hi:  # highest quality that still fits
+            q = (lo + hi) // 2
+            buf = io.BytesIO()
+            save(im, fmt, buf, quality=q, exif=exif, icc=icc)
+            if buf.tell() <= target_bytes:
+                best, lo = buf.getvalue(), q + 1
+            else:
+                hi = q - 1
+        if best is not None:
+            return best, fmt
+        im = im.resize((max(1, int(im.width * 0.8)), max(1, int(im.height * 0.8))), Image.Resampling.LANCZOS)
+        ctx.progress(min(0.9, 0.4 + step * 0.05))
+    raise ImageError("Couldn't get the image that small")
+
+
 def compress(src: Path, fmt: str, options: dict, out_dir: Path, ctx) -> Path:
     im = load(src, fmt)
     exif, icc = _metadata(im)
     ctx.progress(0.4)
+    if options.get("mode") == "Target size":
+        data, ext = _fit_size(im, int(float(options.get("target_kb", 1000)) * 1000), exif, icc, ctx)
+        return write_new_file(out_dir, f"{src.stem} (compressed)", ext, lambda tmp: tmp.write_bytes(data))
     target = _SAME_TARGET[fmt]
     return write_new_file(
         out_dir, f"{src.stem} (compressed)", target,

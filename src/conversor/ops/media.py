@@ -247,7 +247,44 @@ def trim(src: Path, fmt: str, options: dict, out_dir: Path, ctx) -> Path:
                   (end - start) if end is not None else 0, ctx)
 
 
+def _fit_video(src: Path, fmt: str, options: dict, out_dir: Path, ctx) -> Path:
+    """Two-pass encode at the bitrate that lands just under the requested size."""
+    target_mb = float(options.get("target_mb", 25))
+    info = probe(src, fmt)
+    if info["video"] is None or info["duration"] <= 0:
+        raise MediaError("Can't read this video's length")
+    audio_kbps = 96 if info["audio"] else 0
+    total_kbps = target_mb * 8 * 1000 * 0.95 / info["duration"]  # 5% margin for the container
+    video_kbps = int(total_kbps - audio_kbps)
+    if video_kbps < 100:
+        raise MediaError(f"{target_mb:g} MB is too small for a video this long")
+    height = 1080 if video_kbps > 2500 else 720 if video_kbps > 900 else 480
+    common = [*_input(src, fmt), *_metadata(options), "-sn", "-dn", "-map", "0:v:0", *_scale(height),
+              "-c:v", "libx264", "-preset", "medium", "-b:v", f"{video_kbps}k", "-pix_fmt", "yuv420p"]
+    half = _Half(ctx)
+    with tempfile.TemporaryDirectory() as tmp:
+        log = str(Path(tmp) / "pass")
+        run_ffmpeg([*common, "-pass", "1", "-passlogfile", log, "-an", "-f", "null", "-"], info["duration"], half)
+        half.second = True
+        audio = ["-map", "0:a:0?", "-c:a", "aac", "-b:a", f"{audio_kbps}k"] if audio_kbps else ["-an"]
+        return _write(out_dir, f"{src.stem} (compressed)", "mp4",
+                      [*common, "-pass", "2", "-passlogfile", log, *audio, "-movflags", "+faststart"],
+                      info["duration"], half)
+
+
+class _Half:
+    """Maps two ffmpeg passes onto one 0..1 progress bar."""
+
+    def __init__(self, ctx) -> None:
+        self.ctx, self.second = ctx, False
+
+    def progress(self, value: float) -> None:
+        self.ctx.progress(0.5 * value + (0.5 if self.second else 0))
+
+
 def compress_video(src: Path, fmt: str, options: dict, out_dir: Path, ctx) -> Path:
+    if options.get("mode") == "Target size":
+        return _fit_video(src, fmt, options, out_dir, ctx)
     crf, height = COMPRESS.get(options.get("level"), COMPRESS["Balanced"])
     args = [*_input(src, fmt), *_metadata(options), "-sn", "-dn", "-map", "0:v:0", "-map", "0:a?",
             *_scale(height), *_h264(crf, ctx.gpu), "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "128k",

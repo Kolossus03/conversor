@@ -97,6 +97,17 @@ class FileModel(QAbstractListModel):
                 self.dataChanged.emit(idx, idx)
                 return
 
+    def move(self, uid: str, delta: int) -> None:
+        """Swap a file with its nearest neighbour of the same kind (the order merges use)."""
+        rows = [r for r, i in enumerate(self.items) if i.kind == self.find(uid).kind]
+        pos = next(n for n, r in enumerate(rows) if self.items[r].uid == uid)
+        if not 0 <= pos + delta < len(rows):
+            return
+        a, b = rows[pos], rows[pos + delta]
+        self.beginResetModel()
+        self.items[a], self.items[b] = self.items[b], self.items[a]
+        self.endResetModel()
+
     def remove(self, uid: str) -> None:
         for row, item in enumerate(self.items):
             if item.uid == uid:
@@ -210,7 +221,7 @@ class Backend(QObject):
             "kind": kind, "label": label, "supported": True, "convertOp": convert.id,
             "targets": [{"id": t, "label": registry.target_label(kind, t)} for t in targets],
             "tools": [{"id": o.id, "label": o.label} for o in registry.operations_for(kind) if o.role == "tool"],
-            "op": op, "target": target, "hint": hint,
+            "op": op, "target": target, "hint": hint, "combine": operation.combine,
             "options": self._visible_options(operation, target),
         }
 
@@ -322,6 +333,11 @@ class Backend(QObject):
         item = self._files.find(uid)
         if item and item.status not in ("queued", "running"):
             self._files.remove(uid)
+
+    @Slot(str, int)
+    def moveFile(self, uid: str, delta: int) -> None:
+        if not self.busy and self._files.find(uid):
+            self._files.move(uid, delta)
 
     @Slot()
     def clear(self) -> None:

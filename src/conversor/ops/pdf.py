@@ -129,6 +129,42 @@ def split(src: Path, options: dict, out_dir: Path, ctx) -> Path:
     return _in_new_folder(out_dir, f"{src.stem} (pages)", fill)
 
 
+def parse_pages(text: str, total: int) -> list[int]:
+    """'1-3, 7, 10-' -> zero-based page indexes, in document order."""
+    chosen: set[int] = set()
+    for part in str(text or "").replace(" ", "").split(","):
+        if not part:
+            continue
+        try:
+            if "-" in part:
+                a, b = part.split("-", 1)
+                first, last = int(a or 1), int(b or total)
+            else:
+                first = last = int(part)
+        except ValueError:
+            raise PdfError(f"Can't read '{part}'. Use page numbers like 1-3, 7") from None
+        if first < 1 or last > total or first > last:
+            raise PdfError(f"'{part}' is outside this PDF's {total} pages")
+        chosen.update(range(first - 1, last))
+    if not chosen:
+        raise PdfError("Enter the pages in Options, like 1-3, 7")
+    return sorted(chosen)
+
+
+def pick_pages(src: Path, options: dict, out_dir: Path, ctx) -> Path:
+    pdf = _open(src)
+    pages = parse_pages(options.get("pages", ""), len(pdf.pages))
+    remove = options.get("action") == "Remove them"
+    keep = [i for i in range(len(pdf.pages)) if (i in pages) != remove]
+    if not keep:
+        raise PdfError("That would remove every page")
+    out = pikepdf.new()
+    for i in keep:
+        out.pages.append(pdf.pages[i])
+    label = "without pages" if remove else "pages"
+    return _save(out, out_dir, f"{src.stem} ({label} {str(options.get('pages')).strip()})")
+
+
 def rotate(src: Path, options: dict, out_dir: Path, ctx) -> Path:
     pdf = _open(src)
     angle = ROTATIONS.get(options.get("angle"), 90)

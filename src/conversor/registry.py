@@ -19,13 +19,14 @@ class Option:
     targets: tuple[str, ...] = ()  # only shown for these convert targets; empty = always
     when: tuple = ()  # (other_key, value): only shown while that option has that value
     secret: bool = False  # e.g. passwords: kept in memory only, never written to settings
+    placeholder: str = ""  # example text shown in an empty text field
 
     def to_dict(self) -> dict:
         return {
             "key": self.key, "label": self.label, "type": self.type, "default": self.default,
             "choices": list(self.choices), "min": self.min, "max": self.max, "step": self.step,
             "suffix": self.suffix, "targets": list(self.targets), "when": list(self.when),
-            "secret": self.secret,
+            "secret": self.secret, "placeholder": self.placeholder,
         }
 
 
@@ -122,10 +123,15 @@ IMAGE_TOOLS = (
     ),
     Operation(
         id="image.compress", label="Compress", kind="image", role="tool",
-        hint="Smaller file, same format",
+        hint="Smaller file: same format, or under a size you choose (JPG/WEBP)",
         options=(
-            Option("quality", "Quality", "slider", 75, min=10, max=100, step=5, suffix="%"),
-            Option("reduce_colors", "Reduce PNG colors (much smaller, slightly lossy)", "toggle", False),
+            Option("mode", "Compress by", "choice", "Quality", choices=("Quality", "Target size")),
+            Option("quality", "Quality", "slider", 75, min=10, max=100, step=5, suffix="%",
+                   when=("mode", "Quality")),
+            Option("reduce_colors", "Reduce PNG colors (much smaller, slightly lossy)", "toggle", False,
+                   when=("mode", "Quality")),
+            Option("target_kb", "Maximum size", "number", 1000, min=20, max=50000, suffix="KB",
+                   when=("mode", "Target size")),
         ),
     ),
     Operation(
@@ -171,6 +177,11 @@ DOCUMENT_OPS = (
               hint="OCR for scanned PDFs: recognises the text of each page into a .txt file"),
     Operation(id="pdf.merge", label="Merge", kind="pdf", role="tool", combine=True,
               hint="All PDFs, in list order, into one file"),
+    Operation(id="pdf.pages", label="Pick pages", kind="pdf", role="tool",
+              hint="Keep or remove some pages, e.g. 1-3, 7",
+              options=(Option("pages", "Pages", "text", "", placeholder="e.g. 1-3, 7, 10-"),
+                       Option("action", "Those pages", "choice", "Keep only them",
+                              choices=("Keep only them", "Remove them")))),
     Operation(id="pdf.split", label="Split pages", kind="pdf", role="tool",
               hint="One PDF per page, in a new folder"),
     Operation(id="pdf.compress", label="Compress", kind="pdf", role="tool",
@@ -199,7 +210,7 @@ def _trim(kind: str) -> Operation:
         id=f"{kind}.trim", label="Trim", kind=kind, role="tool", hint="Keep only part of it (times like 1:30)",
         options=(
             Option("start", "Start", "text", "0:00"),
-            Option("end", "End (empty = until the end)", "text", ""),
+            Option("end", "End (empty = until the end)", "text", "", placeholder="e.g. 1:30"),
             *((Option("exact", "Cut exactly at these times (re-encodes, slower)", "toggle", False),)
               if kind == "video" else ()),
         ),
@@ -225,9 +236,13 @@ MEDIA_OPS = (
     ),
     _trim("video"),
     Operation(id="video.compress", label="Compress", kind="video", role="tool",
-              hint="Smaller MP4 for sharing; also shrinks very large resolutions",
-              options=(Option("level", "Compression", "choice", "Balanced",
-                              choices=("Light", "Balanced", "Strong")),)),
+              hint="Smaller MP4 for sharing, or under a size limit (e.g. 25 MB for Discord)",
+              options=(Option("mode", "Compress by", "choice", "Quality level",
+                              choices=("Quality level", "Target size")),
+                       Option("level", "Compression", "choice", "Balanced",
+                              choices=("Light", "Balanced", "Strong"), when=("mode", "Quality level")),
+                       Option("target_mb", "Maximum size", "number", 25, min=1, max=4000, suffix="MB",
+                              when=("mode", "Target size")))),
     Operation(id="video.mute", label="Remove sound", kind="video", role="tool",
               hint="Same video without its audio track (instant, no quality loss)"),
     Operation(

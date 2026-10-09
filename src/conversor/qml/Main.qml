@@ -172,6 +172,7 @@ ApplicationWindow {
         TextField {
             visible: editor.opt.type === "text"
             Layout.preferredWidth: 220
+            placeholderText: editor.opt.placeholder || ""
             text: editor.opt.type === "text" ? editor.opt.value : ""
             onEditingFinished: backend.setOption(editor.opId, editor.opt.key, text)
         }
@@ -195,6 +196,7 @@ ApplicationWindow {
     component FileRow: Rectangle {
         id: row
         required property var model
+        property bool canMove: false
         Layout.fillWidth: true
         implicitHeight: 58
         radius: 6
@@ -265,6 +267,16 @@ ApplicationWindow {
                 }
             }
 
+            IconButton {
+                visible: row.canMove
+                glyph: ""; tip: "Move up (merge order)"
+                onClicked: backend.moveFile(row.model.uid, -1)
+            }
+            IconButton {
+                visible: row.canMove
+                glyph: ""; tip: "Move down (merge order)"
+                onClicked: backend.moveFile(row.model.uid, 1)
+            }
             IconButton {
                 visible: row.model.status === "done" && row.model.after !== ""
                 glyph: ""; tip: "Compare before / after"
@@ -421,7 +433,10 @@ ApplicationWindow {
                 spacing: 0
                 Repeater {
                     model: backend.files
-                    FileRow { visible: model.kind === card.group.kind }
+                    FileRow {
+                        visible: model.kind === card.group.kind
+                        canMove: card.group.combine && !backend.busy
+                    }
                 }
             }
         }
