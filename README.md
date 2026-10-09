@@ -27,14 +27,25 @@ The window starts as a single drop zone. File types are detected from their cont
 
 ## Install and run
 
-With [uv](https://docs.astral.sh/uv/):
+First, get the code. Either clone it:
+
+```
+git clone https://github.com/Kolossus03/conversor.git
+cd conversor
+```
+
+or download the ZIP from the green **Code** button on GitHub, extract it, and open a terminal in that folder.
+
+Then install the libraries and start the app with [uv](https://docs.astral.sh/uv/):
 
 ```
 uv sync
 uv run conversor
 ```
 
-With pip:
+`uv sync` downloads the exact library versions from `uv.lock` into a local `.venv` folder (about 2 GB, mostly NVIDIA GPU libraries). This happens only once.
+
+Or with pip:
 
 ```
 python -m venv .venv
