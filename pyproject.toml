@@ -5,8 +5,7 @@ description = "Offline, private file converter for Windows"
 requires-python = ">=3.14"
 dependencies = [
     "numpy>=2.5.3",
-    "nvidia-cudnn-cu12==9.10.2.21",
-    "onnxruntime-gpu[cuda,cudnn]==1.26.0",
+    "onnxruntime-gpu[cuda,cudnn]>=1.31",
     "openpyxl>=3.1.5",
     "pikepdf>=10.16.0",
     "pillow>=12.3.0",
@@ -30,3 +29,7 @@ build-backend = "uv_build"
 dev = [
     "pytest>=9.1.1",
 ]
+
+[tool.uv]
+# Windows-only app (Office COM, Job Objects): resolve dependencies for Windows only.
+environments = ["sys_platform == 'win32'"]
