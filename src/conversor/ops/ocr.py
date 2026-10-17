@@ -55,16 +55,26 @@ def read_text(im) -> str:
     result = _ocr()(arr)
     if result is None or result.txts is None or result.boxes is None:
         return ""
-    lines = sorted(zip(result.boxes, result.txts), key=lambda b: (round(float(b[0][0][1]) / 12), float(b[0][0][0])))
-    out, last_row = [], None
-    for box, text in lines:
-        row = round(float(box[0][1]) / 12)
-        if last_row is not None and row == last_row:
-            out[-1] += " " + text
+    return reading_order(result.boxes, result.txts)
+
+
+def reading_order(boxes, txts) -> str:
+    """Join text boxes into lines: a box whose vertical centre falls within the current line's
+    height belongs to that line (boxes on one line rarely share the same top edge)."""
+    items = []
+    for box, text in zip(boxes, txts):
+        pts = np.asarray(box, dtype=np.float64).reshape(-1, 2)
+        top, bottom = pts[:, 1].min(), pts[:, 1].max()
+        items.append(((top + bottom) / 2, top, bottom, pts[:, 0].min(), text))
+    lines: list[list] = []  # [top, bottom, [(left, text), ...]]
+    for centre, top, bottom, left, text in sorted(items):
+        if lines and lines[-1][0] <= centre <= lines[-1][1]:
+            line = lines[-1]
+            line[0], line[1] = min(line[0], top), max(line[1], bottom)
+            line[2].append((left, text))
         else:
-            out.append(text)
-        last_row = row
-    return "\n".join(out)
+            lines.append([top, bottom, [(left, text)]])
+    return "\n".join(" ".join(text for _, text in sorted(words)) for _, _, words in lines)
 
 
 def image_to_text(src: Path, fmt: str, options: dict, out_dir: Path, ctx) -> Path:

@@ -51,3 +51,11 @@ def test_shapely_stand_in_matches_geometry():
 
     square = Polygon([(0, 0), (2, 0), (2, 2), (0, 2)])
     assert square.area == 4 and square.length == 8
+
+
+def test_ocr_reading_order_groups_words_with_different_tops():
+    def box(left, top, right, bottom):
+        return [[left, top], [right, top], [right, bottom], [left, bottom]]
+
+    boxes = [box(485, 45, 664, 139), box(21, 59, 188, 134), box(172, 51, 512, 140), box(30, 200, 300, 260)]
+    assert ocr.reading_order(boxes, ["2026", "Hello", "Conversor", "Bye"]) == "Hello Conversor 2026\nBye"
