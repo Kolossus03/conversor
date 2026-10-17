@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 
 import pytest
 from openpyxl import load_workbook
@@ -59,3 +60,10 @@ def test_ocr_reading_order_groups_words_with_different_tops():
 
     boxes = [box(485, 45, 664, 139), box(21, 59, 188, 134), box(172, 51, 512, 140), box(30, 200, 300, 260)]
     assert ocr.reading_order(boxes, ["2026", "Hello", "Conversor", "Bye"]) == "Hello Conversor 2026\nBye"
+
+
+def test_ocr_reads_words_with_different_tops_as_one_line():
+    from PIL import Image
+
+    im = Image.open(Path(__file__).parent / "fixtures" / "ocr_mixed_tops.png")
+    assert ocr.read_text(im) == "Hello Conversor 2026"

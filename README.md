@@ -110,6 +110,12 @@ uv run python scripts/build_installer.py
 
 The script downloads a pinned ffmpeg build and checks its SHA-256. It freezes the app with PyInstaller (`packaging/conversor.spec`) and writes both installers to `dist/`. A build takes about 5 minutes.
 
+To check the frozen app, run the command below. It converts images, a PDF, a video, OCR text and a background removal with the bundled ffmpeg, and uses a temporary settings folder. Pass the path of an installed `Conversor.exe` to check an install instead of the build, and add `--office` to also convert an Excel file through Office.
+
+```
+uv run python scripts/check_frozen.py
+```
+
 ## License
 
 MIT. See [LICENSE](LICENSE). Third-party models and tools keep their own licenses, listed above. The installers bundle an unmodified [ffmpeg](https://ffmpeg.org/) build from [gyan.dev](https://www.gyan.dev/ffmpeg/builds/) ([source](https://github.com/GyanD/codexffmpeg/releases/tag/9.0.2)), licensed under the GPL v3. Its license is in the `ffmpeg` folder of the install. Microsoft Office is not bundled.
