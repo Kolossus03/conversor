@@ -17,50 +17,31 @@ An offline file converter for Windows. Drop files in, pick what you want, and th
 
 The window starts as a single drop zone. File types are detected from their content, only the outputs that make sense are offered, and settings stay in a collapsed "Options" panel.
 
-## Requirements
+## Install
 
-- Windows 10 or 11 and Python 3.14
+Download an installer from the [latest release](https://github.com/Kolossus03/conversor/releases/latest) and run it. Choose one of the two:
+
+| Installer | Download | Installed | Choose it if |
+|---|---|---|---|
+| `Conversor-<version>-setup.exe` | about 190 MB | about 650 MB | you don't have an NVIDIA graphics card. The AI tools run on the processor. |
+| `Conversor-<version>-setup-nvidia.exe` | about 1.3 GB | about 2.4 GB | you have an NVIDIA graphics card. The AI tools run about 10 times faster. |
+
+The installer doesn't need administrator rights. It installs Conversor for your user only and adds it to the Start Menu. It can also add a desktop shortcut and an Explorer **Send to → Conversor** entry. ffmpeg is included, so audio and video work straight away.
+
+To switch versions, run the other installer. It replaces the current install.
+
+**"Windows protected your PC":** the installer isn't code-signed, so Windows SmartScreen may warn you the first time. Click **More info**, then **Run anyway**.
+
+### Requirements
+
+- Windows 10 or 11, 64-bit
 - **Optional:**
   - Microsoft Office, for Word, Excel and PowerPoint files
-  - [ffmpeg](https://ffmpeg.org/) on `PATH`, for audio, video and HEIC
-  - an NVIDIA GPU, which makes the AI tools much faster. Without one they run on the CPU.
+  - for the NVIDIA installer, NVIDIA driver 580 or newer. Without it, the AI tools fall back to the processor.
 
-## Install and run
+### Uninstall
 
-First, get the code. Either clone it:
-
-```
-git clone https://github.com/Kolossus03/conversor.git
-cd conversor
-```
-
-or download the ZIP from the green **Code** button on GitHub, extract it, and open a terminal in that folder.
-
-Then install the libraries and start the app with [uv](https://docs.astral.sh/uv/):
-
-```
-uv sync
-uv run conversor
-```
-
-`uv sync` downloads the exact library versions from `uv.lock` into a local `.venv` folder (about 2 GB, mostly NVIDIA GPU libraries). This happens only once.
-
-Or with pip:
-
-```
-python -m venv .venv
-.venv\Scripts\pip install -r requirements.txt
-.venv\Scripts\pip install -e . --no-deps
-.venv\Scripts\python -m conversor
-```
-
-**Optional shortcuts:** add a Start Menu entry and an Explorer "Send to → Conversor" entry with:
-
-```
-uv run python scripts/install_shortcuts.py --start-menu --send-to
-```
-
-**Uninstall:** run `Uninstall Conversor.cmd`. It lists what it will remove (shortcuts, settings, cache and AI models), asks before deleting anything, and never touches your converted files. Then delete the folder.
+Open **Settings → Apps → Installed apps**, find Conversor and choose **Uninstall**. The uninstaller asks whether to also delete your settings and downloaded AI models; the default is No. Your converted files are never touched.
 
 ## AI models
 
@@ -89,15 +70,46 @@ Models download on first use, only after you confirm. Each one is pinned to a SH
 - Output is written to a temporary file and then renamed atomically. Originals are never modified or overwritten.
 
 **Network and privacy**
-- No telemetry. The only network access is a model download you approve.
+- No telemetry and no update checks. The only network access is a model download you approve.
 - PDF passwords stay in memory and are never written to disk.
 
-## Development
+## Run from source
+
+You need Python 3.14 and [uv](https://docs.astral.sh/uv/). Without the installer, ffmpeg must be on `PATH` for audio, video and HEIC.
+
+```
+git clone https://github.com/Kolossus03/conversor.git
+cd conversor
+uv sync
+uv run conversor
+```
+
+`uv sync` downloads the exact library versions from `uv.lock` into a local `.venv` folder, about 3 GB with the NVIDIA libraries. It only does this once.
+
+To add a Start Menu entry and an Explorer "Send to → Conversor" entry that point to the source version, run:
+
+```
+uv run python scripts/install_shortcuts.py --start-menu --send-to
+```
+
+To remove those shortcuts with your settings, cache and AI models, run `Uninstall Conversor.cmd`. It lists everything it will remove and asks before deleting. Then delete the folder.
+
+### Tests
 
 ```
 uv run pytest
 ```
 
+### Build the installers
+
+The build needs [Inno Setup](https://jrsoftware.org/isinfo.php) 6. Point the `ISCC` environment variable at `ISCC.exe` if it isn't the Scoop install.
+
+```
+uv run python scripts/build_installer.py
+```
+
+The script downloads a pinned ffmpeg build and checks its SHA-256. It freezes the app with PyInstaller (`packaging/conversor.spec`) and writes both installers to `dist/`. A build takes about 5 minutes.
+
 ## License
 
-MIT. See [LICENSE](LICENSE). Third-party models and tools keep their own licenses, listed above. ffmpeg and Microsoft Office are not bundled.
+MIT. See [LICENSE](LICENSE). Third-party models and tools keep their own licenses, listed above. The installers bundle an unmodified [ffmpeg](https://ffmpeg.org/) build from [gyan.dev](https://www.gyan.dev/ffmpeg/builds/) ([source](https://github.com/GyanD/codexffmpeg/releases/tag/9.0.2)), licensed under the GPL v3. Its license is in the `ffmpeg` folder of the install. Microsoft Office is not bundled.
