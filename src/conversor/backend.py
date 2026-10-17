@@ -11,6 +11,7 @@ from PySide6.QtCore import (
 from PySide6.QtGui import QDesktopServices, QGuiApplication
 
 from . import models, registry
+from .ops import ai
 from .formats import KIND_NOUNS, detect
 from .runner import WorkerRun
 from .safepaths import UnsafePath, check_input, check_output_dir
@@ -181,6 +182,10 @@ class Backend(QObject):
         s = self._settings
         return {"outputMode": s["output_mode"], "outputFolder": s["output_folder"],
                 "gpu": s["gpu"], "theme": s["theme"]}
+
+    @Property(bool, constant=True)
+    def gpuAvailable(self) -> bool:
+        return ai.cuda_installed()
 
     @Property(str, notify=settingsChanged)
     def outputLabel(self) -> str:

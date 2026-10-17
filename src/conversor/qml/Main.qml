@@ -838,8 +838,10 @@ ApplicationWindow {
                     spacing: 6
                     SectionLabel { text: "AI TOOLS" }
                     Switch {
-                        text: "Use the graphics card (much faster)"
-                        checked: backend.settings.gpu
+                        text: backend.gpuAvailable ? "Use the graphics card (much faster)"
+                                                   : "Graphics card: needs the NVIDIA version of Conversor (AI runs on the CPU)"
+                        enabled: backend.gpuAvailable
+                        checked: backend.gpuAvailable && backend.settings.gpu
                         onToggled: backend.setSetting("gpu", checked)
                     }
                     Repeater {

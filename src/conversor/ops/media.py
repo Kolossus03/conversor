@@ -10,6 +10,7 @@ import json
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 import threading
 from pathlib import Path
@@ -50,7 +51,12 @@ class MediaError(RuntimeError):
 
 
 def find_tool(name: str) -> str:
-    """Absolute path to ffmpeg/ffprobe; resolves Scoop shims (a shim would add an extra process)."""
+    """Absolute path to ffmpeg/ffprobe: the copy bundled with the installed app, else PATH.
+    Scoop shims are resolved (a shim would add an extra process)."""
+    if getattr(sys, "frozen", False):
+        bundled = Path(sys.executable).parent / "ffmpeg" / f"{name}.exe"
+        if bundled.is_file():
+            return str(bundled)
     found = shutil.which(name)
     if not found:
         raise MediaError("ffmpeg is needed for audio and video but wasn't found on this PC")
